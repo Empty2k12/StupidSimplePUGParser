@@ -3,6 +3,8 @@
 class StupidSimplePugParser {
 
     const REGEX_CODE = '/([a-z0-9|\|]+).*$/';
+    const REGEX_COMMENT = '/\/\/ (.+).*$/';
+    const REGEX_BLOCKING_COMMENT = "/\/\/- (.+).*$/";
     const REGEX_ATTR = '/^[^\(=\-]+\(([^\)]+)\).*$/';
     const REGEX_STYLE = '/^[^ \.#\(=\-]*([\.#][^ \(=]*).*$/';
     const REGEX_TEXT = '/^[^ \(=\-]+(\([^\)]*\))? (.*)$/';
@@ -49,8 +51,13 @@ class StupidSimplePugParser {
                 } else {
                     $line = self::str_replace_first(self::SKIP_STRING, "", $line);
                 }
+                
                 # format template
-                $html .= $closingLine . self::lb($n) . $indentSpaces . $line;
+                if(empty($line)) {
+                    $html .= $closingLine;
+                } else {
+                    $html .= $closingLine . self::lb($n) . $indentSpaces . $line;
+                }
             }
         }
         return $html;
@@ -72,10 +79,22 @@ class StupidSimplePugParser {
     static function format_element($line) {
         $attr = $code = $style = $styleAll = $tag_content = null;
         
+        #Create comment when line is comment
+        if(preg_match(self::REGEX_COMMENT, $line)) {
+            $comment = preg_replace(self::REGEX_COMMENT, '\1', $line);
+            return array("<!-- $comment -->", null);
+        }
+        
+        #Skip any file output if the comment is blocking
+        if(preg_match(self::REGEX_BLOCKING_COMMENT, $line)) {
+            $comment = preg_replace(self::REGEX_BLOCKING_COMMENT, '\1', $line);
+            return array(null, null);
+        }
+        
         if (preg_match(self::REGEX_TEXT, $line)) {
             $tag_content = preg_replace(self::REGEX_TEXT, '\2', $line);
         }
-
+        
         if (preg_match(self::REGEX_CODE, $line)) {
             $code = preg_replace(self::REGEX_CODE, '\1', $line);
             if($code === "|") {
