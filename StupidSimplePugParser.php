@@ -2,7 +2,7 @@
 
 class StupidSimplePugParser {
 
-    const REGEX_CODE = '/([a-z0-9]+).*$/';
+    const REGEX_CODE = '/([a-z0-9|\|]+).*$/';
     const REGEX_ATTR = '/^[^\(=\-]+\(([^\)]+)\).*$/';
     const REGEX_STYLE = '/^[^ \.#\(=\-]*([\.#][^ \(=]*).*$/';
     const REGEX_TEXT = '/^[^ \(=\-]+(\([^\)]*\))? (.*)$/';
@@ -78,6 +78,9 @@ class StupidSimplePugParser {
 
         if (preg_match(self::REGEX_CODE, $line)) {
             $code = preg_replace(self::REGEX_CODE, '\1', $line);
+            if($code === "|") {
+                $code = "p";
+            }
         }
         
         if (preg_match(self::REGEX_ATTR, $line)) {
