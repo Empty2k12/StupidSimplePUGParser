@@ -10,6 +10,8 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 * ✔ Classes, IDs, Attributes
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
 * ✔ Self Closing Tags
+* ✔ Doctype Declarations (Custom and PUG presets)
+* ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
 * ✘ Any other language features from the [PUG Deocumentation](http://jade-lang.com/reference/)
 
