@@ -21,15 +21,15 @@ class StupidSimplePugParser {
         'mobile' => '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">'
     );
     
-    static function parseFile($fileName) {
+    static function parseFile($fileName, $additionalIndent = 0) {
         $source_code = file_get_contents($fileName);
-        return self::parseCode($source_code);
+        return self::parseCode($source_code, $additionalIndent);
     }
 
     #Main Parser
     #TODO: options? (variables, ...)
     #TODO: more features
-    static function parseCode($pugCode) {
+    static function parseCode($pugCode, $additionalIndent) {
         $source = str_replace("\r", "", $pugCode);
         $lines = explode("\n", $source . "\n" . self::SKIP_STRING);
         $closing = [];
@@ -37,7 +37,7 @@ class StupidSimplePugParser {
 
         foreach ($lines as $n => $line) {
 
-            $lineIndentation = mb_strlen($line) - mb_strlen(ltrim($line));
+            $lineIndentation = mb_strlen($line) - mb_strlen(ltrim($line)) + $additionalIndent;
             $line = trim($line);
             $indentSpaces = str_repeat("\t", $lineIndentation / 2);
 
@@ -55,7 +55,7 @@ class StupidSimplePugParser {
                 $closing = $newClosing;
 
                 if ($line !== self::SKIP_STRING) {
-                    $element = self::format_element($line);
+                    $element = self::format_element($line, $lineIndentation);
                     $line = $element[0];
                     $closing[$lineIndentation] = array($element[1], $n);
                 } else {
@@ -66,7 +66,7 @@ class StupidSimplePugParser {
                 if(empty($line)) {
                     $html .= $closingLine;
                 } else {
-                    $html .= $closingLine . self::lb($n) . $indentSpaces . $line;
+                    $html .= $closingLine . self::lb($n) . $indentSpaces . ltrim($line);
                 }
             }
         }
@@ -86,7 +86,7 @@ class StupidSimplePugParser {
         return "";
     }
 
-    static function format_element($line) {
+    static function format_element($line, $currentIndent) {
         $attr = $code = $style = $styleAll = $tag_content = null;
         
         #Create comment when line is comment
@@ -115,6 +115,8 @@ class StupidSimplePugParser {
                 } else {
                     return array("<!DOCTYPE $tag_content>", null);
                 }
+            } else if($code === "include") {
+                return array(self::parseFile($tag_content, $currentIndent), null, $currentIndent);
             }
         }
         

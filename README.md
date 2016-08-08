@@ -18,6 +18,8 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 ## Planned Features
 * Implement more features from the [PUG Deocumentation](http://jade-lang.com/reference/)
 * Optimize Speed
+* Extends (Template Inheritance)
+* Include (Template Inclusion)
 
 ## Contributing
 1. Fork it!
