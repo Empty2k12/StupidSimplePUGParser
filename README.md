@@ -8,6 +8,7 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 
 ## Features
 * ✔ Classes, IDs, Attributes
+* ✔ Include File (`include filename.pug`)
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
 * ✔ Self Closing Tags
 * ✔ Doctype Declarations (Custom and PUG presets)
