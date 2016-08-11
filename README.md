@@ -11,10 +11,39 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 * ✔ Include File (`include filename.pug`)
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
 * ✔ Self Closing Tags
+* ✔ Variables
 * ✔ Doctype Declarations (Custom and PUG presets)
 * ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
 * ✘ Any other language features from the [PUG Deocumentation](http://jade-lang.com/reference/)
+
+## Usage
+Parses the file without any options
+´´´
+echo StupidSimplePugParser::parseFile("views/home/index.jade");
+´´´
+
+You can pass a optional second argument: Options
+´´´
+echo StupidSimplePugParser::parseFile("views/home/index.jade", array(
+    "variables" => array(
+        "title" => "Appentdecker"
+    )
+));
+´´´
+
+All Options
+```
+$options = array(
+    //Additional Indentation
+    "additionalIndent" => 2,
+
+    //Variables: They are defined as #{title}
+    "variables" => array(
+        "title" => "Appentdecker"
+    )
+);
+```
 
 ## Planned Features
 * Implement more features from the [PUG Deocumentation](http://jade-lang.com/reference/)
