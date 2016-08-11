@@ -2,4 +2,4 @@
 
 require_once '../StupidSimplePugParser.php';
 
-echo StupidSimplePugParser::parseFile('test.pug');
+echo StupidSimplePugParser::parseFile('../includestest/index.pug');

@@ -42,7 +42,7 @@ class StupidSimplePugParser {
      * @param array $options Options array
      * @return string Valid HTML code
      */
-    static function parseFile($pathAndName, $options = null) {
+    static function parseFile($pathAndName, $options = array()) {
         $source_code = file_get_contents($pathAndName);
         return self::parseCode($source_code, $options);
     }
@@ -130,9 +130,13 @@ class StupidSimplePugParser {
      * @param integer $indent The Indentation to be converted to a string
      * @return string The Indentation
      */
-    static function get_indentation($indent) {
+    static function get_indentation($indent, $options) {
         if ($indent > 0) {
-            return str_repeat("\t", $indent / 4);
+            $fileIndentedBy = 2;
+            if(array_key_exists('filesIndentedBy', $options)) {
+                $fileIndentedBy = $options['filesIndentedBy'];
+            }
+            return str_repeat("\t", $indent / $fileIndentedBy);
         }
     }
 

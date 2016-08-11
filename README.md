@@ -8,10 +8,10 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 
 ## Features
 * ✔ Classes, IDs, Attributes
-* ✔ Include File (`include filename.pug`)
+* ✔ Include File (`include filename.pug`, includes can include more files)
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
-* ✔ Self Closing Tags
-* ✔ Variables
+* ✔ Self Closing Tags (`selfclosing/` and HTML Selfclosing Tags)
+* ✔ Variables (`#{title}` => `My Title`)
 * ✔ Doctype Declarations (Custom and PUG presets)
 * ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
@@ -35,10 +35,13 @@ echo StupidSimplePugParser::parseFile("views/home/index.jade", array(
 All Options
 ```
 $options = array(
-    //Additional Indentation
+    //Additional Indentation (Default: 0, this is required internally for includes)
     "additionalIndent" => 2,
 
-    //Variables: They are defined as #{title}
+    //Intendation of the PUG files (Usually 2 or 4, default: 2)
+    "filesIndentedBy" => 4,
+
+    //Variables: They are defined as #{title} in the PUG code, they output !!{title} if not found
     "variables" => array(
         "title" => "Appentdecker"
     )
@@ -46,10 +49,9 @@ $options = array(
 ```
 
 ## Planned Features
-* Implement more features from the [PUG Deocumentation](http://jade-lang.com/reference/)
-* Optimize Speed
+* Implement more features from the [PUG Documentation](http://jade-lang.com/reference/)
+* Proper Benchmarking and Speed Improvements
 * Extends (Template Inheritance)
-* Include (Template Inclusion)
 
 ## Contributing
 1. Fork it!
@@ -65,7 +67,8 @@ For a detailed overview over changes to this Repository check the Master commit 
 Beware of ugly code.
 
 Bugfixes are generally welcome. If you want to contribute something which changes major parts of the parser, please talk to someone with commit privileges first. Nothing is more frustrating than putting a lot of work and effort into a new feature and then having the PR rejected because it doesn’t fit design-wise.
-**The philosophy of this project is keeping the parser in a single class, please repect that when contributing!**
+
+**The philosophy of this project is keeping the parser in a single class, please respect that when contributing!**
 
 If you submit a PR you must accept the Contributor License Agreement. There is no way around that, since otherwise changing the license later - even to something more permissive! - , becomes close to impossible.
 
