@@ -19,18 +19,18 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 
 ## Usage
 Parses the file without any options
-´´´
+```
 echo StupidSimplePugParser::parseFile("views/home/index.jade");
-´´´
+```
 
 You can pass a optional second argument: Options
-´´´
+```
 echo StupidSimplePugParser::parseFile("views/home/index.jade", array(
     "variables" => array(
         "title" => "Appentdecker"
     )
 ));
-´´´
+```
 
 All Options
 ```
