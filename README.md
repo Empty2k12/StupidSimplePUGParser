@@ -11,25 +11,33 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 * ✔ Include File (`include filename.pug`, includes can include more files)
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
 * ✔ Self Closing Tags (`selfclosing/` and HTML Selfclosing Tags)
-* ✔ Variables (`#{title}` => `My Title`)
+* ✔ Variables (`#{pageTitle}` => `My Title`)
 * ✔ Doctype Declarations (Custom and PUG presets)
 * ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
 * ✘ Any other language features from the [PUG Deocumentation](http://jade-lang.com/reference/)
 
 ## Usage
-Parses the file without any options
 ```
-echo StupidSimplePugParser::parseFile("views/home/index.jade");
+echo StupidSimplePugParser::create()
+    ->withFile("views/home/index.pug") //Reads in File
+    ->withCode("h1 Header 1")          //Uses PUG Code
+    ->setOptions($options)             //Sets options (OPTIONAL)
+    ->toHtml();                        //Parses and outputs html code
 ```
 
-You can pass a optional second argument: Options
+Sample Usage
 ```
-echo StupidSimplePugParser::parseFile("views/home/index.jade", array(
-    "variables" => array(
-        "title" => "Appentdecker"
-    )
-));
+echo StupidSimplePugParser::create()
+    ->withFile("views/home/index.pug")
+    ->setOptions(array(
+        "filesIndentedBy" => 4,
+        "variables" => array(
+            "pageTitle" => "My Title",
+            "pageText" => "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam..."
+        )
+    ))
+    ->toHtml();
 ```
 
 All Options

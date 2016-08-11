@@ -34,17 +34,27 @@ class StupidSimplePugParser {
         'basic' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">',
         'mobile' => '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">'
     );
+    
+    private $code = "";
+    private $options = array();
 
-    /**
-     * Parses the file under $pathAndName to HTML code
-     *
-     * @param string $pathAndName File Path and or Name
-     * @param array $options Options array
-     * @return string Valid HTML code
-     */
-    static function parseFile($pathAndName, $options = array()) {
-        $source_code = file_get_contents($pathAndName);
-        return self::parseCode($source_code, $options);
+    static function create() {
+        return new StupidSimplePugParser();
+    }
+    
+    function withCode($code) {
+        $this->code = $code;
+        return $this;
+    }
+
+    function withFile($filename) {
+        $this->code = file_get_contents($filename);
+        return $this;
+    }
+    
+    function setOptions($options) {
+        $this->options = $options;
+        return $this;
     }
 
     /**
@@ -56,18 +66,18 @@ class StupidSimplePugParser {
      *
      * @todo More Features such as Mixins
      */
-    static function parseCode($pugCode, $options) {
+    function toHtml() {
 
         $linesToClose = [];
         $html = null;
 
-        foreach (self::code_to_lines($pugCode) as $lineNumber => $line) {
+        foreach ($this->code_to_lines($this->code) as $lineNumber => $line) {
 
             $additionalIndent = 0;
-            if(array_key_exists("additionalIndent", $options)) {
-                $additionalIndent = $options['additionalIndent'];
+            if (array_key_exists("additionalIndent", $this->options)) {
+                $additionalIndent = $this->options['additionalIndent'];
             }
-            $lineIndentation = self::get_line_indentation($line) + $additionalIndent;
+            $lineIndentation = $this->get_line_indentation($line) + $additionalIndent;
             $line = trim($line);
 
             if (empty($line)) {
@@ -78,7 +88,7 @@ class StupidSimplePugParser {
             $closingLine = null;
             foreach ($linesToClose as $previousIndentation => $previousClosing) {
                 if ($previousIndentation >= $lineIndentation) {
-                    $closingLine = $previousClosing[0] . self::should_lb($previousIndentation, $lineIndentation) . self::get_indentation($previousIndentation - 2) . $closingLine;
+                    $closingLine = $previousClosing[0] . $this->should_lb($previousIndentation, $lineIndentation) . $this->get_indentation($previousIndentation - 2) . $closingLine;
                 } else {
                     $newLinesToClose[$previousIndentation] = $previousClosing;
                 }
@@ -86,18 +96,18 @@ class StupidSimplePugParser {
             $linesToClose = $newLinesToClose;
 
             if ($line !== self::SKIP_STRING) {
-                $element = self::format_element($line, $lineIndentation, $options);
+                $element = $this->format_element($line, $lineIndentation, $this->options);
                 $htmlBlock = $element[0];
                 $linesToClose[$lineIndentation] = array($element[1], $lineNumber);
             } else {
-                $htmlBlock = self::str_replace_first(self::SKIP_STRING, "", $line);
+                $htmlBlock = $this->str_replace_first(self::SKIP_STRING, "", $line);
             }
 
             # format template
             if (empty($htmlBlock)) {
                 $html .= $closingLine;
             } else {
-                $html .= $closingLine . self::should_lb($lineNumber) . self::get_indentation($lineIndentation) . ltrim($htmlBlock);
+                $html .= $closingLine . $this->should_lb($lineNumber) . $this->get_indentation($lineIndentation) . ltrim($htmlBlock);
             }
         }
         return $html;
@@ -109,7 +119,7 @@ class StupidSimplePugParser {
      * @param string $pugCode PUG Code
      * @return array Lines
      */
-    static function code_to_lines($pugCode) {
+    function code_to_lines($pugCode) {
         $source = str_replace("\r", "", $pugCode);
         return explode("\n", $source . "\n" . self::SKIP_STRING);
     }
@@ -120,7 +130,7 @@ class StupidSimplePugParser {
      * @param string $line The Line
      * @return integer Spaces Indentation
      */
-    static function get_line_indentation($line) {
+    function get_line_indentation($line) {
         return mb_strlen($line) - mb_strlen(ltrim($line));
     }
 
@@ -130,11 +140,11 @@ class StupidSimplePugParser {
      * @param integer $indent The Indentation to be converted to a string
      * @return string The Indentation
      */
-    static function get_indentation($indent, $options) {
+    function get_indentation($indent) {
         if ($indent > 0) {
             $fileIndentedBy = 2;
-            if(array_key_exists('filesIndentedBy', $options)) {
-                $fileIndentedBy = $options['filesIndentedBy'];
+            if (array_key_exists('filesIndentedBy', $this->options)) {
+                $fileIndentedBy = $this->options['filesIndentedBy'];
             }
             return str_repeat("\t", $indent / $fileIndentedBy);
         }
@@ -147,7 +157,7 @@ class StupidSimplePugParser {
      * @param integer $lineIndentation Current line indentation
      * @return string New line if we should break, null else
      */
-    static function should_lb($previousIndentation, $lineIndentation = 0) {
+    function should_lb($previousIndentation, $lineIndentation = 0) {
         if ($previousIndentation > $lineIndentation) {
             return "\n";
         }
@@ -160,29 +170,29 @@ class StupidSimplePugParser {
      * @param int $currentIndent Additional indentation to be applied
      * @return string Valid HTML block
      */
-    static function format_element($line, $currentIndent, $options) {
-        if (self::is_comment($line)) {
-            return self::get_formatted_comment($line);
+    function format_element($line, $currentIndent, $options) {
+        if ($this->is_comment($line)) {
+            return $this->get_formatted_comment($line);
         }
-        if (self::is_blocking_comment($line)) {
+        if ($this->is_blocking_comment($line)) {
             return array(null, null);
         }
-        $extractedCode = self::extract_html_tag($line);
-        $code = self::pipe_to_p($extractedCode);
-        $tag_content = self::extract_tag_contents($line, $options);
-        if (self::is_doctype_operator($code)) {
-            return self::get_formatted_doctype($tag_content);
+        $extractedCode = $this->extract_html_tag($line);
+        $code = $this->pipe_to_p($extractedCode);
+        $tag_content = $this->extract_tag_contents($line, $options);
+        if ($this->is_doctype_operator($code)) {
+            return $this->get_formatted_doctype($tag_content);
         }
-        if (self::is_include_operator($code)) {
-            if(!isset($options)) {
+        if ($this->is_include_operator($code)) {
+            if (!isset($options)) {
                 $options = array();
             }
             $options['additionalIndent'] = $currentIndent;
-            return self::handle_include($tag_content, $options);
+            return $this->handle_include($tag_content, $options);
         }
-        $attr = self::extract_attrs($line);
-        $style = self::extract_style($line);
-        return self::get_tag($code, $attr, $style, $tag_content);
+        $attr = $this->extract_attrs($line);
+        $style = $this->extract_style($line);
+        return $this->get_tag($code, $attr, $style, $tag_content);
     }
 
     /**
@@ -191,7 +201,7 @@ class StupidSimplePugParser {
      * @param string $line PUG Code
      * @return string Formatted class and id names
      */
-    static function extract_style($line) {
+    function extract_style($line) {
         $style = null;
         if (preg_match(self::REGEX_STYLE, $line)) {
             $styleAllPlain = preg_replace(self::REGEX_STYLE, ' \1', $line);
@@ -219,7 +229,7 @@ class StupidSimplePugParser {
      * @param string $line PUG Code
      * @return string Attributes
      */
-    static function extract_attrs($line) {
+    function extract_attrs($line) {
         if (preg_match(self::REGEX_ATTR, $line)) {
             return preg_replace(self::REGEX_ATTR, ' \1', $line);
         }
@@ -231,13 +241,13 @@ class StupidSimplePugParser {
      * @param string $line PUG Code
      * @return string Line Contents
      */
-    static function extract_tag_contents($line, $options) {
+    function extract_tag_contents($line, $options) {
         if (preg_match(self::REGEX_TEXT, $line)) {
             $text = preg_replace(self::REGEX_TEXT, '\2', $line);
             while (preg_match("/#\{(.*)\}/isU", $text)) {
                 $text = preg_replace_callback("/#\{(.*)\}/isU", function($matches) use($options) {
                     $textReturn = "!!{" . $matches[1] . "}";
-                    if(array_key_exists('variables', $options) && array_key_exists($matches[1], $options['variables'])) {
+                    if (array_key_exists('variables', $options) && array_key_exists($matches[1], $options['variables'])) {
                         $textReturn = $options['variables'][$matches[1]];
                     }
                     return $textReturn;
@@ -253,7 +263,7 @@ class StupidSimplePugParser {
      * @param string $line PUG Line
      * @return string HTML Tag
      */
-    static function extract_html_tag($line) {
+    function extract_html_tag($line) {
         if (preg_match(self::REGEX_CODE, $line)) {
             return preg_replace(self::REGEX_CODE, '\1', $line);
         }
@@ -265,7 +275,7 @@ class StupidSimplePugParser {
      * @param string $code PUG Operator
      * @return string p if |
      */
-    static function pipe_to_p($code) {
+    function pipe_to_p($code) {
         if ($code === "|") {
             return "p";
         }
@@ -278,7 +288,7 @@ class StupidSimplePugParser {
      * @param string $line_content Doctype Identifier or Custom Doctype
      * @return string HTML doctype declaration
      */
-    static function get_formatted_doctype($line_content) {
+    function get_formatted_doctype($line_content) {
         if (array_key_exists($line_content, self::$DOCTYPE_DECLARATIONS)) {
             return array(self::$DOCTYPE_DECLARATIONS[$line_content], null);
         } else {
@@ -290,11 +300,15 @@ class StupidSimplePugParser {
      * Parse Includes deep
      *
      * @param type $includeFile Filename or Path
-     * @param type $additionalIndent Additional Indentation
+     * @param array $options Options
      * @return type     /
      */
-    static function handle_include($includeFile, $options) {
-        return array(self::parseFile($includeFile, $options), null);
+    function handle_include($includeFile, $options) {
+        $html = StupidSimplePugParser::create()
+            ->withFile($includeFile)
+            ->setOptions($options)
+            ->toHtml();
+        return array($html, null);
     }
 
     /**
@@ -303,7 +317,7 @@ class StupidSimplePugParser {
      * @param type $line Line
      * @return type Formatted Comment
      */
-    static function get_formatted_comment($line) {
+    function get_formatted_comment($line) {
         $comment = preg_replace(self::REGEX_COMMENT, '\1', $line);
         return array("<!-- $comment -->", null);
     }
@@ -317,7 +331,7 @@ class StupidSimplePugParser {
      * @param type $tag_content
      * @return type     /
      */
-    static function get_formatted_tag($code, $attr, $style, $tag_content) {
+    function get_formatted_tag($code, $attr, $style, $tag_content) {
         $output = "<$code$attr$style>$tag_content";
         $closing = "</$code>";
         return array($output, $closing);
@@ -332,40 +346,40 @@ class StupidSimplePugParser {
      * @param type $tag_content
      * @return type     /
      */
-    static function get_tag($code, $attr, $style, $tag_content) {
-        if (in_array($code, self::SELFCLOSING_TAGS) || self::str_endswith($code, "/")) {
+    function get_tag($code, $attr, $style, $tag_content) {
+        if (in_array($code, self::SELFCLOSING_TAGS) || $this->str_endswith($code, "/")) {
             $code = str_replace("/", "", $code);
             return array("<$code$attr$style/>", null);
         } else {
-            return self::get_formatted_tag($code, $attr, $style, $tag_content);
+            return $this->get_formatted_tag($code, $attr, $style, $tag_content);
         }
     }
 
     /**
      * Returns true when the operator is a doctype operator
      */
-    static function is_doctype_operator($code) {
+    function is_doctype_operator($code) {
         return $code === "doctype";
     }
 
     /**
      * Returns true when the operator is a include operator
      */
-    static function is_include_operator($code) {
+    function is_include_operator($code) {
         return $code === "include";
     }
 
     /**
      * Returns true when line is a comment
      */
-    static function is_comment($line) {
+    function is_comment($line) {
         return preg_match(self::REGEX_COMMENT, $line);
     }
 
     /**
      * Returns true when line is a blocking comment
      */
-    static function is_blocking_comment($line) {
+    function is_blocking_comment($line) {
         return preg_match(self::REGEX_BLOCKING_COMMENT, $line);
     }
 
@@ -377,7 +391,7 @@ class StupidSimplePugParser {
      * @param string $subject The string where to replace
      * @return string The string with replacement
      */
-    static function str_replace_first($search, $replace, $subject) {
+    function str_replace_first($search, $replace, $subject) {
         $pos = strpos($subject, $search);
         if ($pos !== false) {
             return substr_replace($subject, $replace, $pos, strlen($search));
