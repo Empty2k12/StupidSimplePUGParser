@@ -12,6 +12,7 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 * ✔ Pipe Operator (`|` :arrow_right: `p`)
 * ✔ Self Closing Tags (`selfclosing/` and HTML Selfclosing Tags)
 * ✔ Variables (`#{pageTitle}` => `My Title`)
+* ✔ Cache
 * ✔ Doctype Declarations (Custom and PUG presets)
 * ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
@@ -32,6 +33,7 @@ echo StupidSimplePugParser::create()
     ->withFile("views/home/index.pug")
     ->setOptions(array(
         "filesIndentedBy" => 4,
+        "cache" => true,
         "variables" => array(
             "pageTitle" => "My Title",
             "pageText" => "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam..."
@@ -48,6 +50,12 @@ $options = array(
 
     //Intendation of the PUG files (Usually 2 or 4, default: 2)
     "filesIndentedBy" => 4,
+
+    //Enables Cache
+    "cache" => true,
+
+    //Sets custom cache directory (Default: pug_cache/)
+    "cacheDir" => "my_custom_cache_directory/",
 
     //Variables: They are defined as #{title} in the PUG code, they output !!{title} if not found
     "variables" => array(

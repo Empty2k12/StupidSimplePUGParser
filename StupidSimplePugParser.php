@@ -34,14 +34,13 @@ class StupidSimplePugParser {
         'basic' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">',
         'mobile' => '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">'
     );
-    
     private $code = "";
     private $options = array();
 
     static function create() {
         return new StupidSimplePugParser();
     }
-    
+
     function withCode($code) {
         $this->code = $code;
         return $this;
@@ -51,8 +50,9 @@ class StupidSimplePugParser {
         $this->code = file_get_contents($filename);
         return $this;
     }
-    
+
     function setOptions($options) {
+
         $this->options = $options;
         return $this;
     }
@@ -67,6 +67,14 @@ class StupidSimplePugParser {
      * @todo More Features such as Mixins
      */
     function toHtml() {
+
+        $key = hash('ripemd128', serialize($this->options));
+        if ($this->should_cache() && !file_exists($this->get_cache_dir())) {
+            mkdir($this->get_cache_dir(), 0777, true);
+        }
+        if ($this->should_cache() && file_exists($this->get_cache($key))) {
+            return gzuncompress(file_get_contents($this->get_cache($key)));
+        }
 
         $linesToClose = [];
         $html = null;
@@ -96,7 +104,7 @@ class StupidSimplePugParser {
             $linesToClose = $newLinesToClose;
 
             if ($line !== self::SKIP_STRING) {
-                $element = $this->format_element($line, $lineIndentation, $this->options);
+                $element = $this->format_element($line, $lineIndentation);
                 $htmlBlock = $element[0];
                 $linesToClose[$lineIndentation] = array($element[1], $lineNumber);
             } else {
@@ -110,7 +118,28 @@ class StupidSimplePugParser {
                 $html .= $closingLine . $this->should_lb($lineNumber) . $this->get_indentation($lineIndentation) . ltrim($htmlBlock);
             }
         }
+
+        if ($this->should_cache()) {
+            file_put_contents($this->get_cache($key), gzcompress($html));
+        }
+
         return $html;
+    }
+
+    function should_cache() {
+        return array_key_exists('cache', $this->options) && $this->options['cache'] === TRUE;
+    }
+
+    function get_cache($key) {
+        return $this->get_cache_dir() . $key . '.cache';
+    }
+    
+    function get_cache_dir() {
+        $cacheDir = 'pug_cache/';
+        if (array_key_exists('cacheDir', $this->options)) {
+            $cacheDir = $this->options['cacheDir'];
+        }
+        return $cacheDir;
     }
 
     /**
@@ -170,7 +199,7 @@ class StupidSimplePugParser {
      * @param int $currentIndent Additional indentation to be applied
      * @return string Valid HTML block
      */
-    function format_element($line, $currentIndent, $options) {
+    function format_element($line, $currentIndent) {
         if ($this->is_comment($line)) {
             return $this->get_formatted_comment($line);
         }
@@ -179,16 +208,12 @@ class StupidSimplePugParser {
         }
         $extractedCode = $this->extract_html_tag($line);
         $code = $this->pipe_to_p($extractedCode);
-        $tag_content = $this->extract_tag_contents($line, $options);
+        $tag_content = $this->extract_tag_contents($line);
         if ($this->is_doctype_operator($code)) {
             return $this->get_formatted_doctype($tag_content);
         }
         if ($this->is_include_operator($code)) {
-            if (!isset($options)) {
-                $options = array();
-            }
-            $options['additionalIndent'] = $currentIndent;
-            return $this->handle_include($tag_content, $options);
+            return $this->handle_include($tag_content, $currentIndent);
         }
         $attr = $this->extract_attrs($line);
         $style = $this->extract_style($line);
@@ -241,20 +266,40 @@ class StupidSimplePugParser {
      * @param string $line PUG Code
      * @return string Line Contents
      */
-    function extract_tag_contents($line, $options) {
+    function extract_tag_contents($line) {
         if (preg_match(self::REGEX_TEXT, $line)) {
             $text = preg_replace(self::REGEX_TEXT, '\2', $line);
-            while (preg_match("/#\{(.*)\}/isU", $text)) {
-                $text = preg_replace_callback("/#\{(.*)\}/isU", function($matches) use($options) {
-                    $textReturn = "!!{" . $matches[1] . "}";
-                    if (array_key_exists('variables', $options) && array_key_exists($matches[1], $options['variables'])) {
-                        $textReturn = $options['variables'][$matches[1]];
-                    }
-                    return $textReturn;
-                }, $text);
-            }
-            return $text;
+            return $this->evaluate_variables($text);
         }
+    }
+
+    /**
+     * Replaces Variables that exist with the repective text and variables that don't exist with !!{varName}
+     * 
+     * @param string $text Line Content
+     * @return string Text with replaced Variables
+     */
+    function evaluate_variables($text) {
+        while (preg_match("/#\{(.*)\}/isU", $text)) {
+            $text = preg_replace_callback("/#\{(.*)\}/isU", function($matches) use($options) {
+                return $this->return_variable($matches[1]);
+            }, $text);
+        }
+        return $text;
+    }
+
+    /**
+     * Gets a variable content, !!{varName} is it's not existant
+     * 
+     * @param string $match varName
+     * @return string Variable if key exists, !!{varName} else
+     */
+    function return_variable($match) {
+        $textReturn = "!!{" . $match . "}";
+        if (array_key_exists('variables', $this->options) && array_key_exists($match, $this->options['variables'])) {
+            $textReturn = $this->options['variables'][$match];
+        }
+        return $textReturn;
     }
 
     /**
@@ -303,11 +348,13 @@ class StupidSimplePugParser {
      * @param array $options Options
      * @return type     /
      */
-    function handle_include($includeFile, $options) {
+    function handle_include($includeFile, $currentIndent) {
+        $options = $this->options;
+        $options['additionalIndent'] = $currentIndent;
         $html = StupidSimplePugParser::create()
-            ->withFile($includeFile)
-            ->setOptions($options)
-            ->toHtml();
+                ->withFile($includeFile)
+                ->setOptions($options)
+                ->toHtml();
         return array($html, null);
     }
 
