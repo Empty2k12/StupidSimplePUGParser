@@ -41,18 +41,32 @@ class StupidSimplePugParser {
         return new StupidSimplePugParser();
     }
 
+    /**
+     * Initialises the class with PUG Code
+     * 
+     * @param string $code
+     */
     function withCode($code) {
         $this->code = $code;
         return $this;
     }
 
+    /**
+     * Initialises the class from a file
+     * 
+     * @param string $code
+     */
     function withFile($filename) {
         $this->code = file_get_contents($filename);
         return $this;
     }
 
+    /**
+     * Sets the parser options
+     * 
+     * @param string $code
+     */
     function setOptions($options) {
-
         $this->options = $options;
         return $this;
     }
@@ -81,11 +95,7 @@ class StupidSimplePugParser {
 
         foreach ($this->code_to_lines($this->code) as $lineNumber => $line) {
 
-            $additionalIndent = 0;
-            if (array_key_exists("additionalIndent", $this->options)) {
-                $additionalIndent = $this->options['additionalIndent'];
-            }
-            $lineIndentation = $this->get_line_indentation($line) + $additionalIndent;
+            $lineIndentation = $this->get_line_indentation($line) + $this->get_additional_indent();
             $line = trim($line);
 
             if (empty($line)) {
@@ -125,15 +135,52 @@ class StupidSimplePugParser {
 
         return $html;
     }
+    
+    /**
+     * Retuns true is a CSRF Token is supplied in the options
+     * 
+     * @return boolean
+     */
+    function has_csrf_token() {
+        return array_key_exists("csrfToken", $this->options);
+    }
+    
+    /**
+     * Returns the CSRF Token if supplied, else null
+     * 
+     * @return CSRF Token
+     */
+    function get_csrf_token() {
+        if($this->has_csrf_token()) {
+            return $this->options['csrfToken'];
+        }
+    }
 
+    
+    /**
+     * Returns true if the option is set to cache
+     * 
+     * @return boolean
+     */
     function should_cache() {
         return array_key_exists('cache', $this->options) && $this->options['cache'] === TRUE;
     }
 
+    /**
+     * Returns full cache path for a options key
+     * 
+     * @param string $key
+     * @return string Filepath
+     */
     function get_cache($key) {
         return $this->get_cache_dir() . $key . '.cache';
     }
-    
+
+    /**
+     * Gets the cache dir from options, else "pug_cache/"
+     * 
+     * @return string Cache Directory
+     */
     function get_cache_dir() {
         $cacheDir = 'pug_cache/';
         if (array_key_exists('cacheDir', $this->options)) {
@@ -217,7 +264,24 @@ class StupidSimplePugParser {
         }
         $attr = $this->extract_attrs($line);
         $style = $this->extract_style($line);
-        return $this->get_tag($code, $attr, $style, $tag_content);
+
+        if (array_key_exists("additionalIndent", $this->options)) {
+            $additionalIndent = $this->options['additionalIndent'];
+        }
+        return $this->get_tag($code, $attr, $style, $tag_content, $this->get_indentation($currentIndent));
+    }
+
+    /**
+     * Gets the additiona indent from options, else 0
+     * 
+     * @return integer additionalIndent from options, else 0
+     */
+    function get_additional_indent() {
+        $additionalIndent = 0;
+        if (array_key_exists("additionalIndent", $this->options)) {
+            $additionalIndent = $this->options['additionalIndent'];
+        }
+        return $additionalIndent;
     }
 
     /**
@@ -378,9 +442,13 @@ class StupidSimplePugParser {
      * @param type $tag_content
      * @return type     /
      */
-    function get_formatted_tag($code, $attr, $style, $tag_content) {
+    function get_formatted_tag($code, $attr, $style, $tag_content, $indent) {
         $output = "<$code$attr$style>$tag_content";
         $closing = "</$code>";
+        if ($this->is_form_tag($code) && $this->has_csrf_token()) {
+            $csrfToken = $this->get_csrf_token();
+            $output .= "\n\t" . $indent . "<input type='hidden' name='token' value='$csrfToken'>";
+        }
         return array($output, $closing);
     }
 
@@ -393,12 +461,12 @@ class StupidSimplePugParser {
      * @param type $tag_content
      * @return type     /
      */
-    function get_tag($code, $attr, $style, $tag_content) {
+    function get_tag($code, $attr, $style, $tag_content, $indent) {
         if (in_array($code, self::SELFCLOSING_TAGS) || $this->str_endswith($code, "/")) {
             $code = str_replace("/", "", $code);
             return array("<$code$attr$style/>", null);
         } else {
-            return $this->get_formatted_tag($code, $attr, $style, $tag_content);
+            return $this->get_formatted_tag($code, $attr, $style, $tag_content, $indent);
         }
     }
 
@@ -414,6 +482,13 @@ class StupidSimplePugParser {
      */
     function is_include_operator($code) {
         return $code === "include";
+    }
+
+    /**
+     * Returns true when the atg is a form tag
+     */
+    function is_form_tag($code) {
+        return $code === "form";
     }
 
     /**
@@ -456,8 +531,9 @@ class StupidSimplePugParser {
     function str_endswith($string, $test) {
         $strlen = strlen($string);
         $testlen = strlen($test);
-        if ($testlen > $strlen)
+        if ($testlen > $strlen) {
             return false;
+        }
         return substr_compare($string, $test, $strlen - $testlen, $testlen) === 0;
     }
 

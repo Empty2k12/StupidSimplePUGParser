@@ -13,6 +13,7 @@ This project is inspired by kafene's [microhaml](https://github.com/kafene/micro
 * ✔ Self Closing Tags (`selfclosing/` and HTML Selfclosing Tags)
 * ✔ Variables (`#{pageTitle}` => `My Title`)
 * ✔ Cache
+* ✔ CSRF Token Auto-Injection (supply `csrfToken` in config)
 * ✔ Doctype Declarations (Custom and PUG presets)
 * ✔ Blocking (`//-`) and non-blocking (`//`) comments
 * ✔ Correct HTML formatting
@@ -56,6 +57,9 @@ $options = array(
 
     //Sets custom cache directory (Default: pug_cache/)
     "cacheDir" => "my_custom_cache_directory/",
+
+    //Sets the CSRF Token, will auto inject it to any form element
+    "csrfToken" => hash("sha256", "my token " . microtime(true)),
 
     //Variables: They are defined as #{title} in the PUG code, they output !!{title} if not found
     "variables" => array(
